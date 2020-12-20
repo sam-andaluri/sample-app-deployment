@@ -1,0 +1,13 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+spec:
+  template:
+    spec:
+      $setElementOrder/containers:
+      - name: sample-app
+      containers:
+      - image: gitopsbook/sample-app:v0.2
+        name: sample-app
