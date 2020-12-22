@@ -1,0 +1,54 @@
+on: push
+name: deploy
+env:
+  AWS_DEFAULT_REGION: us-east-2
+  AWS_DEFAULT_OUTPUT: json
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  FLUX_FORWARD_NAMESPACE: flux
+jobs:
+  deploy:
+    name: deploy to cluster
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Setup fluxctl # Following steps are based on fluxctl-action docs
+      uses: fluxcd/fluxctl-action@v1.21.0
+    - name: Install Flux
+      run: |
+        export GHUSER="sam-andaluri"
+        echo "${{secrets.KUBE_CONFIG_BASE64}}" | base64 --decode > /tmp/config && export KUBECONFIG=/tmp/config
+        fluxctl install \
+        --git-user=${GHUSER} \
+        --git-email=${GHUSER}@users.noreply.github.com \
+        --git-url=git@github.com:${GHUSER}/sample-app-deployment \
+        --namespace=flux | kubectl apply -f -
+        fluxctl sync
+    #   run: |
+    #     echo "${{secrets.KUBE_CONFIG_BASE64}}" | base64 --decode > /tmp/config && export KUBECONFIG=/tmp/config
+    #     kubectl create ns flux
+    #     fluxctl install \
+    #     --git-path=/ \
+    #     --git-email=invalid@scs.community \
+    #     --git-url=https://github.com/$GITHUB_REPOSITORY.git \
+    #     --manifest-generation=true \
+    #     --namespace=flux | kubectl apply -f -
+    # - name: Verify install
+    #   run: kubectl -n flux rollout status deploy/flux --timeout=1m
+      # run: |
+      #   echo "${{secrets.KUBE_CONFIG_BASE64}}" | base64 --decode > /tmp/config && export KUBECONFIG=/tmp/config
+      #   fluxctl sync
+
+
+    # - name: Wait for service to be Ready
+    #   run: ./test/wait
+    # - name: Check if service is working as expected
+    #   run: ./test/test
+    # - name: Fetch fluxcd logs
+    #   if: ${{ always() }}
+    #   run: kubectl logs -n flux deploy/flux
+    # - name: Fetch helm-operator logs if present
+    #   if: ${{ always() }}
+    #   run: |
+    #     kubectl get deploy -n flux helm-operator && kubectl logs -n flux deploy/helm-operator || echo 'helm-operator not present'
